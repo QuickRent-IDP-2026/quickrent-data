@@ -1,23 +1,41 @@
-from fastapi import FastAPI
-from sqlalchemy import create_engine, text
+from fastapi import FastAPI, HTTPException
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 import os
 
 app = FastAPI()
 
+# DB setup
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/quickrent_db")
-
 engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-@app.get("/")
-def read_root():
-    return {"message": "Data Service is up and running!"}
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password = Column(String)
 
-@app.get("/db-check")
-def check_db():
+Base.metadata.create_all(bind=engine)
+
+@app.post("/users")
+def create_user(user_data: dict):
+    db = SessionLocal()
+    new_user = User(
+        username=user_data['username'],
+        email=user_data['email'],
+        password=user_data['password']
+    )
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-        return {"status": "Connected to Database successfully!"}
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"id": new_user.id, "status": "User saved in DB"}
     except Exception as e:
-        return {"status": "Error", "details": str(e)}
-
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
