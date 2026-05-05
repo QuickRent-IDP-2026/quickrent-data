@@ -3,8 +3,11 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+
+Instrumentator().instrument(app).expose(app)
 
 # DB setup
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/quickrent_db")
