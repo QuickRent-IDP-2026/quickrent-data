@@ -22,6 +22,19 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
 
+class Scooter(Base):
+    __tablename__ = "scooters"
+    id = Column(Integer, primary_key=True, index=True)
+    model = Column(String)
+    is_available = Column(Boolean, default=True)
+
+class Rental(Base):
+    __tablename__ = "rentals"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer)
+    scooter_id = Column(Integer)
+
+
 Base.metadata.create_all(bind=engine)
 
 @app.post("/users")
@@ -42,3 +55,22 @@ def create_user(user_data: dict):
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
+
+# Get scooters with their availability status
+@app.get("/scooters")
+def get_scooters():
+    db = SessionLocal()
+    scooters = db.query(Scooter).all()
+    db.close()
+    return scooters
+
+# Mark a scooter as rented or available
+@app.put("/scooters/{id}/rent")
+def update_scooter_status(id: int, available: bool):
+    db = SessionLocal()
+    scooter = db.query(Scooter).filter(Scooter.id == id).first()
+    if scooter:
+        scooter.is_available = available
+        db.commit()
+    db.close()
+    return {"status": "updated"}
