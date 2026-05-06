@@ -64,6 +64,24 @@ def get_scooters():
     db.close()
     return scooters
 
+@app.post("/scooters")
+def create_scooter(scooter_data: dict):
+    db = SessionLocal()
+    new_scooter = Scooter(
+        model=scooter_data['model'],
+        is_available=scooter_data.get('is_available', True)
+    )
+    try:
+        db.add(new_scooter)
+        db.commit()
+        db.refresh(new_scooter)
+        return {"id": new_scooter.id, "status": "Scooter created"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+
 # Mark a scooter as rented or available
 @app.put("/scooters/{id}/rent")
 def update_scooter_status(id: int, available: bool):
