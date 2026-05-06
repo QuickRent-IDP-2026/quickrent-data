@@ -34,6 +34,17 @@ class Rental(Base):
     user_id = Column(Integer)
     scooter_id = Column(Integer)
 
+@app.get("/users/{username}")
+def get_user_by_username(username: str):
+    db = SessionLocal()
+    try:
+        # Filter DB by username column
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found in DB")
+        return {"id": user.id, "username": user.username, "email": user.email}
+    finally:
+        db.close()
 
 Base.metadata.create_all(bind=engine)
 
